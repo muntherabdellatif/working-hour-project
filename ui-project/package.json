@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "sass": "^1.77.8"
+  },
+  "name": "ui-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "devDependencies": {},
+  "scripts": {
+    "start": "node index.jsx"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+
+}
