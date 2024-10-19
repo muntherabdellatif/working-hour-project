@@ -39,8 +39,53 @@ function App() {
 	};
 
 	const handleButtonClick = () => {
-    	setCounting(prevCounting => !prevCounting);
-  	};
+		if (counting) 
+			return stopTimer();
+
+		startTimer();
+	};
+
+	const startTimer = () => {
+		fetch('http://localhost:5000/timer/start', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ user_id: 1 }),
+		})
+		.then((response) => response.json())
+		.then((data) => {			
+			setTime(getTimeDiff(data.timestamp, data.lastRecordsDuration / 1000)); 
+			setCounting(true);
+		})
+		.catch((error) => console.error('Error:', error));
+	}
+
+	const stopTimer = () => {
+		fetch('http://localhost:5000/timer/stop', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ user_id: 1 }),
+		})
+		.then((response) => response.json())
+		.then(() => {			
+			setCounting(false);
+		})
+		.catch((error) => console.error('Error:', error));
+	}
+
+	const getTimeDiff = (timestamp , duration) => {
+		const timeDiff = Date.now() - timestamp;
+		const totalSeconds = Math.floor(timeDiff / 1000) +  Math.floor(duration);
+
+		const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+		return {hours, minutes, seconds};
+	}
 
 	return (
 		<div className="App">
