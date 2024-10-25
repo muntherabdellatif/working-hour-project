@@ -1,4 +1,5 @@
 const db = require('../DB/db');
+const {groupBy} = require('lodash');
 
 exports.start = (req, res) => {
 	try {
@@ -15,18 +16,10 @@ exports.start = (req, res) => {
 				return res.status(500).send('Error fetching data');
 			}
 
-			const recordsWithoutEndTime = rows.filter(record => record.endTime === null);
-			const recordsWithEndTime = rows.filter(record => record.endTime !== null);
-			let duration = 0;
+			const {timestamp , lastRecordsDuration} = formatCurrntDayData(rows);
 
-			if (recordsWithEndTime.length) {
-				for (const record of recordsWithEndTime) {
-				duration += record.endTime - record.startTime;
-				}
-			}
-
-			if (recordsWithoutEndTime.length) {
-				return res.json({ timestamp: recordsWithoutEndTime[0].startTime, lastRecordsDuration: duration });
+			if (timestamp) {
+				return res.json({ timestamp, lastRecordsDuration });
 			}
 
 			const currentTimestampUTC = Date.now();
@@ -79,3 +72,73 @@ exports.stop = (req, res) => {
     res.status(500).send(error);
   }
 };
+
+exports.getData = async (req, res) => {
+	try {
+		const userId = +req.params.user_id;
+		const currentDate = new Date();
+		const startOfDayUTC = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), 0));
+		const startOfMonthTimestamp = startOfDayUTC.getTime();
+
+		
+		db.all('SELECT * FROM user_times where userId = ? and startTime > ?', [userId, startOfMonthTimestamp], function(err, rows) {
+			const returnData = {
+				currentDayData: {
+					timestamp: 0, lastRecordsDuration: 0
+				},
+				monthData: {}
+			}
+
+			if (!rows.length) 
+				res.json(returnData);
+
+			const startDayOfDayUTC = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()));
+			const startOfDayTimestamp = startDayOfDayUTC.getTime();
+
+			const currentDayData = rows.filter(data => data.startTime > startOfDayTimestamp);
+			const monthData = rows.filter(data => data.startTime < startOfDayTimestamp);
+
+			const {timestamp , lastRecordsDuration} = formatCurrntDayData(currentDayData);
+			returnData.currentDayData.lastRecordsDuration = lastRecordsDuration;
+			returnData.currentDayData.timestamp = timestamp;
+
+			monthData.forEach((date) => date.day = getFormatedDate(date.startTime));
+			const daysData = groupBy(monthData, 'day');
+			const days = Object.keys(daysData);
+			days.forEach((day) => returnData.monthData[day] = getDutationSum(daysData[day]));
+
+			res.json(returnData);
+		})
+    }catch (error) {
+    	console.log(error);
+    	res.status(500).send(error);
+  }
+};
+
+formatCurrntDayData = (rows) => {
+	const recordsWithoutEndTime = rows.filter(record => record.endTime === null);
+	const recordsWithEndTime = rows.filter(record => record.endTime !== null);
+	let duration = 0;
+
+	if (recordsWithEndTime.length)
+		duration = getDutationSum(recordsWithEndTime);
+
+	if (recordsWithoutEndTime.length) 
+		return { timestamp: recordsWithoutEndTime[0].startTime, lastRecordsDuration: duration };
+
+	return { timestamp: 0, lastRecordsDuration: duration };
+}
+
+getFormatedDate = (timestamp) => {
+	const date = new Date(timestamp);
+	return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+}
+
+getDutationSum = (dateList) => {
+	let duration = 0;
+
+	for (const record of dateList)
+		duration += record.endTime - record.startTime;
+
+	return duration;
+}

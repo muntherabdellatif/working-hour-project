@@ -4,11 +4,17 @@ import React, { useState, useEffect } from 'react';
 function App() {
 	const [time, setTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
 	const [counting, setCounting] = useState(false);
+	const [isFirstTime, setIsFirstTime] = useState(true);
 
 	useEffect(() => {
     	const timer = setInterval(() => {
 			updateTimer();
 		}, 1000);
+
+		if (isFirstTime) {
+			getData();
+			setIsFirstTime(false);
+		}
 
 		return () => clearInterval(timer);
 	}, [counting]);
@@ -75,6 +81,18 @@ function App() {
 		})
 		.catch((error) => console.error('Error:', error));
 	}
+
+	const getData = () => {
+		fetch(`http://localhost:5000/timer/get/${1}`, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		})
+		.then((response) => response.json())
+		.then(res => console.log(res))
+	}
+
 
 	const getTimeDiff = (timestamp , duration) => {
 		const timeDiff = Date.now() - timestamp;
