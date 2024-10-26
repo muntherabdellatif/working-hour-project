@@ -27,11 +27,11 @@ exports.start = (req, res) => {
 
 			db.run(sql, [userId, currentTimestampUTC], function(err) {
 				if (err) {
-				console.error('Error running query:', err.message);
-				return res.status(500).send('Error inserting data');
+					console.error('Error running query:', err.message);
+					return res.status(500).send('Error inserting data');
 				}
 
-				res.json({ timestamp: currentTimestampUTC, lastRecordsDuration: duration });
+				res.json({ timestamp: currentTimestampUTC, lastRecordsDuration: lastRecordsDuration });
 			});
 		});
   } catch (error) {
@@ -86,7 +86,7 @@ exports.getData = async (req, res) => {
 				currentDayData: {
 					timestamp: 0, lastRecordsDuration: 0
 				},
-				monthData: {}
+				monthData: []
 			}
 
 			if (!rows.length) 
@@ -105,7 +105,7 @@ exports.getData = async (req, res) => {
 			monthData.forEach((date) => date.day = getFormatedDate(date.startTime));
 			const daysData = groupBy(monthData, 'day');
 			const days = Object.keys(daysData);
-			days.forEach((day) => returnData.monthData[day] = getDutationSum(daysData[day]));
+			days.forEach((day) => returnData.monthData.push({day, duration: getDutationSum(daysData[day])}));
 
 			res.json(returnData);
 		})

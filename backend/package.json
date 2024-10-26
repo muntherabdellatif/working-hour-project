@@ -8,6 +8,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "backend": "file:",
     "cors": "^2.8.5",
     "dotenv": "^7.0.0",
     "express": "^4.16.4",

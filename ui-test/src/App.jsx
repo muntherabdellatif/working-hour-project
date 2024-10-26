@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 function App() {
 	const [time, setTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
+	const [monthData, setMonthData] = useState([]);
 	const [counting, setCounting] = useState(false);
 	const [isFirstTime, setIsFirstTime] = useState(true);
 
@@ -90,12 +91,20 @@ function App() {
 			},
 		})
 		.then((response) => response.json())
-		.then(res => console.log(res))
+		.then(res => {
+			setTime(getTimeDiff(res.currentDayData.timestamp, res.currentDayData.lastRecordsDuration / 1000));
+			setMonthData(res.monthData);
+			if (res.currentDayData.timestamp)
+				setCounting(true);
+		})
 	}
 
 
 	const getTimeDiff = (timestamp , duration) => {
-		const timeDiff = Date.now() - timestamp;
+		let timeDiff = Date.now() - timestamp;
+		if (!timestamp)
+			timeDiff = 0;
+
 		const totalSeconds = Math.floor(timeDiff / 1000) +  Math.floor(duration);
 
 		const hours = Math.floor(totalSeconds / 3600);
@@ -103,6 +112,16 @@ function App() {
         const seconds = totalSeconds % 60;
 
 		return {hours, minutes, seconds};
+	}
+
+	const fromatDuration = (timestamp)  => {
+		const totalSeconds = timestamp / 1000;
+
+		const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+
+		return`${formatTime(hours)}:${formatTime(minutes)}:${formatTime(seconds)}`;
 	}
 
 	return (
@@ -119,18 +138,14 @@ function App() {
 					</tr>
 				</thead>
 				<tbody>
-					<tr>
-						<td>15-10-2024</td>
-						<td>07:30:00</td>
-					</tr>
-					<tr>
-						<td>15-10-2024</td>
-						<td>07:30:00</td>
-					</tr>
-					<tr>
-						<td>15-10-2024</td>
-						<td>07:30:00</td>
-					</tr>
+					{
+						monthData.map((day) => (
+							<tr key={day.day}>
+								<td>{day.day}</td>
+								<td>{fromatDuration(day.duration)}</td>
+							</tr>
+						))
+					}
 				</tbody>
 			</table>
 		</div>
